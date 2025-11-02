@@ -1,0 +1,32 @@
+
+<!-- nav -->
+<nav class="navbar navbar-expand navbar-dark bg-dark" *ngIf="user">
+    <div class="navbar-nav">
+        <a class="nav-item nav-link" routerLink="/messenger" routerLinkActive="active"
+            [routerLinkActiveOptions]="{exact: true}">Messenger</a>
+        <a class="nav-item nav-link" (click)="logout()">Logout</a>
+        <div class="img_cont">
+            <img [src]="user!.image" class="rounded-circle user_img">
+        </div>
+        <p>Welcome <b>{{user!.userName}}</b> </p>
+    </div>
+</nav>
+
+<!-- main app container -->
+<div class="app-container" >
+    <alert></alert>
+    <!-- <app-messenger></app-messenger> -->
+    <router-outlet></router-outlet>
+</div>
+<ng-container *ngIf="callerUserId">
+    <div class="incoming-call-overlay">
+        <div class="incoming-call-card">
+            <h3>Incoming Call</h3>
+            <p>From: <strong>{{ callerUserId }}</strong></p>
+            <div class="actions">
+                <button class="btn-decline" (click)="declineCall()">Decline</button>
+                <button class="btn-accept" (click)="acceptCall()">Accept</button>
+            </div>
+        </div>
+    </div>
+</ng-container>

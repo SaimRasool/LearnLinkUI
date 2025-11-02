@@ -1,10 +1,12 @@
 import { Component, HostListener, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { ChannelVM } from '../models/channelVM';
-import { MessengerService } from '../services/messenger.service';
-import { UserService } from '../services/user.service';
-import { AlertService } from '../services/alert.service';
-import { UserVM } from '../models/usersVM';
-import { ChannelMessageVM } from '../models/channelMessageVM';
+import { MessengerService } from '../../services/messenger.service';
+import { UserService } from '../../services/user.service';
+import { AlertService } from '../../services/alert.service';
+import { UserVM } from '../../models/usersVM';
+import { ChannelMessageVM } from '../../models/channelMessageVM';
+import { WebsocketService } from '../../services/websocket.service';
+import { SignalRService } from 'src/app/services/signalR.service';
+
 
 @Component({
   selector: 'app-my-messenger',
@@ -12,7 +14,7 @@ import { ChannelMessageVM } from '../models/channelMessageVM';
   styleUrls: ['./my-messenger.component.css'],
 })
 export class MyMessengerComponent implements OnChanges, OnInit {
-  user: UserVM = new UserVM();
+  user: UserVM | null = null;
   @Input() channel: any | undefined;
   channelMessages: ChannelMessageVM[] = [];
   displayMessagesList: any[] = [];
@@ -21,14 +23,35 @@ export class MyMessengerComponent implements OnChanges, OnInit {
   pageSize: number = 10;
   isChannelParticipants: boolean = false;
   textareaValue: string = '';
+
   constructor(
     private messengerService: MessengerService,
     private accountService: UserService,
-    private alertService: AlertService
+    private alertService: AlertService,
+    private wsService: WebsocketService,
+    private signalRService: SignalRService
   ) {
     this.accountService.user.subscribe((x) => (this.user = x));
   }
-  ngOnInit() {}
+  ngOnInit() {
+    // Identify yourself after connection opens
+    // this.wsService.connect(this.user.userId!.toString());
+
+    this.wsService.connectionState().subscribe((state) => {
+      if (state === 'open') {
+      }
+    });
+    //this.signalRService.connect(this.user.userId!.toString());
+    // Listen for messages
+    this.wsService.listen('message').subscribe((msg) => {
+      this.getAllChannelMessages();
+      console.log('Message received:', msg);
+    });
+
+    this.wsService.listen('connected').subscribe((msg) => {
+      console.log('Connected with ID:', msg);
+    });
+  }
 
   async ngOnChanges(changes: SimpleChanges) {
     if (this.channel?.channelId! > 0) {
@@ -60,9 +83,17 @@ export class MyMessengerComponent implements OnChanges, OnInit {
     msg.channelId = this.channel?.channelId;
     msg.isSeen = false;
     msg.messageDate = new Date();
-    msg.senderID = this.user.userId;
+    msg.senderID = this.user!.userId;
+    const user = this.participantList.find(
+      (cp: any) => cp.userId != this.user!.userId
+    );
     this.messengerService.addCahnelMessage(msg).subscribe(
       (data) => {
+        this.wsService.sendCustom('message', {
+          fromUserId: this.user!.userId!.toString(), // sender
+          toUserId: user.userId.toString(), // receiver
+          text: this.textareaValue,
+        });
         if (data.res) {
           this.getNewChannelMessages();
         }
@@ -127,7 +158,7 @@ export class MyMessengerComponent implements OnChanges, OnInit {
               const user = this.participantList.find(
                 (cp: any) => cp.userId == element.senderID
               );
-              if (element.senderId == this.user.userId) element.isSelf = true;
+              if (element.senderId == this.user!.userId) element.isSelf = true;
               this.displayMessagesList.unshift({
                 ...element,
                 ...user,
@@ -139,7 +170,7 @@ export class MyMessengerComponent implements OnChanges, OnInit {
               const user = this.participantList.find(
                 (cp: any) => cp.userId == element.senderID
               );
-              if (element.senderId == this.user.userId) element.isSelf = true;
+              if (element.senderId == this.user!.userId) element.isSelf = true;
               this.displayMessagesList.push({
                 ...element,
                 ...user,
@@ -153,6 +184,7 @@ export class MyMessengerComponent implements OnChanges, OnInit {
         }
       );
   }
+
   getNewChannelMessages() {
     let lastChannelMessage: number = 0;
     if (this.displayMessagesList.length > 0)
@@ -171,7 +203,7 @@ export class MyMessengerComponent implements OnChanges, OnInit {
             const user = this.participantList.find(
               (cp: any) => cp.userId == element.senderID
             );
-            if (element.senderId == this.user.userId) element.isSelf = true;
+            if (element.senderId == this.user!.userId) element.isSelf = true;
             this.displayMessagesList.push({
               ...element,
               ...user,
@@ -184,6 +216,7 @@ export class MyMessengerComponent implements OnChanges, OnInit {
         }
       );
   }
+
   handleKeyPress(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();

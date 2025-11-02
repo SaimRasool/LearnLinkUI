@@ -8,18 +8,18 @@ import { Router } from '@angular/router';
   providedIn: 'root',
 })
 export class UserService {
-  private userSubject: BehaviorSubject<UserVM>;
-  public user: Observable<UserVM>;
+  private userSubject: BehaviorSubject<UserVM | null>;
+  public user: Observable<UserVM | null>;
   private url: string = '/assets/user.json';
   constructor(private http: HttpClient, private router: Router) {
-    this.userSubject = new BehaviorSubject<UserVM>(
+    this.userSubject = new BehaviorSubject<UserVM | null>(
       JSON.parse(localStorage.getItem('user')!)
     );
     this.user = this.userSubject.asObservable();
   }
 
-  public get userValue(): UserVM {
-    return this.userSubject.value;
+  public get userValue(): UserVM|null {
+    return this.userSubject.value!;
   }
 
   login(username: any, password: any): Observable<any> {
@@ -52,8 +52,7 @@ export class UserService {
   logout() {
     // remove user from local storage and set current user to null
     localStorage.removeItem('user');
-    this.userSubject.next(new UserVM());
-    this.router.navigate(['/login']);
+    this.userSubject.next(null);
   }
   getUser(userId: any): Observable<any> {
     return this.http.get<any[]>(this.url).pipe(

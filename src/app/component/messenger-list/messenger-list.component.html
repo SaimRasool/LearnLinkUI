@@ -23,15 +23,20 @@
                 <div class="card-body contacts_body">
                     <ul class="contacts">
                         <ng-container *ngFor="let channel of channelList">
-                            <li  [ngClass]="{'active': channel.isActive}" (click)="selectedChannel(channel)">
-                                <div class="d-flex bd-highlight">
-                                    <div class="img_cont">
-                                        <img [src]="channel.image" class="rounded-circle user_img">
-                                        <span class="online_icon"></span>
+                            <li  [ngClass]="{'active': channel.isActive}" >
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center" (click)="selectedChannel(channel)">
+                                        <div class="img_cont">
+                                            <img [src]="channel.image" class="rounded-circle user_img">
+                                            <span class="online_icon"></span>
+                                        </div>
+                                        <div class="user_info">
+                                            <span>{{channel.channelName}}</span>
+                                            <p>{{channel.lastMessageContent}}</p>
+                                        </div>
                                     </div>
-                                    <div class="user_info">
-                                        <span>{{channel.channelName}}</span>
-                                        <p>{{channel.lastMessageContent}}</p>
+                                    <div class="call_icon" (click)="startVideoCall(channel, $event)">
+                                         <i class="fa fa-video"></i>
                                     </div>
                                 </div>
                             </li>

@@ -2,8 +2,8 @@ import { Component, NgModule, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { UserService } from '../services/user.service';
-import { AlertService } from '../services/alert.service';
+import { UserService } from '../../services/user.service';
+import { AlertService } from '../../services/alert.service';
 
 
 @Component({ 
@@ -40,7 +40,8 @@ export class LoginComponent implements OnInit {
         });
 
         // get return url from route parameters or default to '/'
-        this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    this.returnUrl =
+      this.route.snapshot.queryParams['returnUrl'] || '/messenger';
     }
 
     // convenience getter for easy access to form fields
@@ -59,7 +60,7 @@ export class LoginComponent implements OnInit {
 
         this.loading = true;
         this.userService.login(this.f?.["username"].value, this.f?.["password"].value).subscribe(data => {
-                    this.router.navigate([this.returnUrl]);
+                    this.router.navigate([this.returnUrl,]);
                 },
                 error => {
                     this.alertService.error(error);

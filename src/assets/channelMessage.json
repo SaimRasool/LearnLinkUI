@@ -325,5 +325,194 @@
     "messageDate": "2023-11-20T19:13:27.612Z",
     "senderID": 1,
     "channelMessageId": 38
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 1,
+    "isSeen": false,
+    "messageDate": "2025-10-15T18:22:44.993Z",
+    "senderID": 1,
+    "channelMessageId": 39
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 1,
+    "isSeen": false,
+    "messageDate": "2025-10-15T18:23:00.233Z",
+    "senderID": 1,
+    "channelMessageId": 40
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 4,
+    "isSeen": false,
+    "messageDate": "2025-10-15T18:23:15.352Z",
+    "senderID": 1,
+    "channelMessageId": 41
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hello",
+    "channelId": 4,
+    "isSeen": false,
+    "messageDate": "2025-10-15T18:24:17.782Z",
+    "senderID": 3,
+    "channelMessageId": 42
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hello",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-22T19:06:17.909Z",
+    "senderID": 4,
+    "channelMessageId": 43
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-22T19:07:36.717Z",
+    "senderID": 1,
+    "channelMessageId": 44
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-22T19:12:11.676Z",
+    "senderID": 4,
+    "channelMessageId": 45
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:13:02.860Z",
+    "senderID": 4,
+    "channelMessageId": 46
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:13:45.845Z",
+    "senderID": 4,
+    "channelMessageId": 47
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:14:15.028Z",
+    "senderID": 4,
+    "channelMessageId": 48
+  },
+  {
+    "isSelf": false,
+    "messageContent": "test",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:16:22.916Z",
+    "senderID": 4,
+    "channelMessageId": 49
+  },
+  {
+    "isSelf": false,
+    "messageContent": "ly",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:17:30.220Z",
+    "senderID": 4,
+    "channelMessageId": 50
+  },
+  {
+    "isSelf": false,
+    "messageContent": "ji",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:20:32.360Z",
+    "senderID": 4,
+    "channelMessageId": 51
+  },
+  {
+    "isSelf": false,
+    "messageContent": "ji",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:21:03.005Z",
+    "senderID": 4,
+    "channelMessageId": 52
+  },
+  {
+    "isSelf": false,
+    "messageContent": "iii",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:21:14.622Z",
+    "senderID": 1,
+    "channelMessageId": 53
+  },
+  {
+    "isSelf": false,
+    "messageContent": "iii",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:22:29.779Z",
+    "senderID": 1,
+    "channelMessageId": 54
+  },
+  {
+    "isSelf": false,
+    "messageContent": "io",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:22:47.745Z",
+    "senderID": 4,
+    "channelMessageId": 55
+  },
+  {
+    "isSelf": false,
+    "messageContent": "aw",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:36:15.358Z",
+    "senderID": 4,
+    "channelMessageId": 56
+  },
+  {
+    "isSelf": false,
+    "messageContent": "testing",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-23T18:36:35.101Z",
+    "senderID": 1,
+    "channelMessageId": 57
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hi",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-24T18:26:26.630Z",
+    "senderID": 4,
+    "channelMessageId": 58
+  },
+  {
+    "isSelf": false,
+    "messageContent": "hhhhhh",
+    "channelId": 3,
+    "isSeen": false,
+    "messageDate": "2025-10-24T18:26:49.583Z",
+    "senderID": 4,
+    "channelMessageId": 59
   }
 ]

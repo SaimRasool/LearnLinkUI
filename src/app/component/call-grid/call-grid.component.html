@@ -1,0 +1,70 @@
+<ng-container *ngIf="showCallGrid">
+<div class="setup-container">
+    <h2 class="title">Device Setup</h2>
+
+    <div class="selectors">
+        <div class="device-select">
+            <label for="camera">Camera</label>
+        <select #cam [(ngModel)]="selectedCamId"  (change)="onDeviceChange(cam.value, null, null)">
+            <option *ngFor="let cam of videoDevices$ | async" [value]="cam.deviceId">
+                {{ cam.label || 'Camera ' + cam.deviceId }}
+            </option>
+        </select>
+        </div>
+
+        <div class="device-select">
+            <label for="microphone">Microphone</label>
+            <select [(ngModel)]="selectedMicId" #mic (change)="onDeviceChange(null, mic.value, null)">
+                <option *ngFor="let mic of audioInputs$ | async" [value]="mic.deviceId">
+                    {{ mic.label || 'Microphone ' + mic.deviceId }}
+                </option>
+            </select>
+        </div>
+
+        <div class="device-select">
+            <label for="speaker">Speaker</label>
+        <select #spk (change)="onDeviceChange(null, null, spk.value)">
+            <option *ngFor="let spk of audioOutputs$ | async" [value]="spk.deviceId">
+                {{ spk.label || 'Speaker ' + spk.deviceId }}
+            </option>
+        </select>
+        </div>
+    </div>
+
+    <div class="video-container">
+        <video #videoPreview autoplay playsinline muted></video>
+    </div>
+
+    <div class="controls">
+<button (click)="toggleMic()" [class.muted]="mediaService.microphonePrivacy">
+    <i class="fa" [ngClass]="{
+      'fa-microphone': !mediaService.microphonePrivacy,
+      'fa-microphone-slash text-red-500': mediaService.microphonePrivacy
+  }"></i>
+    <span *ngIf="mediaService.micPermission === 'denied'" class="warning-icon">⚠️</span>
+    {{ mediaService.microphonePrivacy ? 'Unmute Mic' : 'Mute Mic' }}
+</button>
+
+<button (click)="toggleCamera()" [class.off]="mediaService.cameraPrivacy">
+    <i class="fa" [ngClass]="{
+      'fa-video': !mediaService.cameraPrivacy,
+      'fa-video-slash text-red-500': mediaService.cameraPrivacy
+  }"></i>
+    <span *ngIf="mediaService.camPermission === 'denied'" class="warning-icon">⚠️</span>
+    {{ mediaService.cameraPrivacy ? 'Turn On Camera' : 'Turn Off Camera' }}
+</button>
+    </div>
+    <div class="permission-warning"
+        *ngIf="mediaService.camPermission === 'denied' || mediaService.micPermission === 'denied'">
+        <p>⚠️ Please allow camera and microphone access to continue.</p>
+        <button (click)="retryPermission()">Try Again</button>
+    </div>
+    <div>
+        <button (click)="joinCall()">Join Call
+        </button>
+    </div>
+</div>
+
+</ng-container>
+
+<app-call-room *ngIf="!showCallGrid"></app-call-room>

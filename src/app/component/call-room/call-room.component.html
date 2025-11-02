@@ -1,0 +1,15 @@
+<div class="call-container">
+    <div *ngIf="isLoading">Connecting...</div>
+    <video #remoteVideo class="remote-video" autoplay playsinline></video>
+    <video #localVideo class="local-video" autoplay playsinline muted></video>
+
+    <div class="controls">
+        <button (click)="toggleMic()" class="control-btn">
+            {{ micEnabled ? 'Mute' : 'Unmute' }}
+        </button>
+        <button (click)="toggleCamera()" class="control-btn">
+            {{ cameraEnabled ? 'Camera Off' : 'Camera On' }}
+        </button>
+        <button (click)="endCall()"  class="end-btn">End Call</button>
+    </div>
+</div>

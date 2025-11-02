@@ -253,3 +253,19 @@
         margin-bottom: 15px !important;
     }
 }
+/* Right Section: Call / Video Icon */
+.call_icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00c851;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s ease-in-out, transform 0.2s;
+}
+
+.call_icon:hover {
+    color: #007e33;
+    transform: scale(1.1);
+}

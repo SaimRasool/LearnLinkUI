@@ -1,0 +1,100 @@
+.call-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: #121212;
+    /* Dark background */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    border-radius: 8px;
+}
+.local-video {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+    /* Changed from 'cover' */
+    background: #000;
+    /* Black background for bars */
+
+    /* MIRROR + FIX POSITION */
+    transform: scaleX(-1);
+    transform-origin: center;
+    /* This is the KEY */
+    z-index: 10;
+}
+.local-video:hover {
+    transform: scaleX(-1) scale(1.1);
+    bottom: 90px;
+    right: 30px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+.controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 12px 24px;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+}
+
+.control-btn {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.control-btn:hover {
+    background-color: #1976d2;
+}
+
+.end-btn {
+    background-color: #f44336;
+}
+
+.end-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+    .local-video {
+        width: 120px;
+        height: 90px;
+        bottom: 100px;
+    }
+
+    .controls {
+        padding: 8px 16px;
+        gap: 8px;
+    }
+
+    .control-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+}
