@@ -1,18 +1,14 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  ViewChild,
-  ElementRef,
-  AfterViewInit,
-  Inject,
-} from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { UserVM } from 'src/app/models/usersVM';
 import { MediaService } from 'src/app/services/media.service';
-import { SignalRService } from 'src/app/services/signalR.service';
 import { UserService } from 'src/app/services/user.service';
+import { SignalingFacade } from 'src/app/services/signaling/signaling.facade';
+import { VideoCallFacade } from 'src/app/services/video/video-call.facade';
+import { JitsiMeetService } from 'src/app/services/video/jitsi-meet.service';
+import { VideoProviderId } from 'src/app/models/app-settings';
 
 @Component({
   selector: 'app-call-room',
@@ -20,273 +16,100 @@ import { UserService } from 'src/app/services/user.service';
   styleUrls: ['./call-room.component.css'],
 })
 export class CallRoomComponent implements OnInit, AfterViewInit, OnDestroy {
-  // -----------------------------------------------------------------
-  // ViewChildren
-  // -----------------------------------------------------------------
-  @ViewChild('localVideo', { static: true })
-  localVideo!: ElementRef<HTMLVideoElement>;
-  @ViewChild('remoteVideo', { static: true })
-  remoteVideo!: ElementRef<HTMLVideoElement>;
+  @ViewChild('localVideo') localVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('remoteVideo') remoteVideo?: ElementRef<HTMLVideoElement>;
 
-  // -----------------------------------------------------------------
-  // Component state
-  // -----------------------------------------------------------------
-  private peerConnection!: RTCPeerConnection;
-  private localStream!: MediaStream;
-  private pendingIceCandidates: RTCIceCandidate[] = [];
-  private subs: Subscription[] = [];
-  private isDestroyed = false;
-
-  // -----------------------------------------------------------------
-  // Route / user info
-  // -----------------------------------------------------------------
-  remoteUserId!: string;
-  currentUserId!: string;
-  isCaller = false; // true → we send the offer
+  remoteUserId = '';
+  currentUserId = '';
+  isCaller = false;
   micEnabled = true;
   cameraEnabled = true;
   user: UserVM | null = null;
-  isLoading :boolean= true;
-  // -----------------------------------------------------------------
-  // Constructor
-  // -----------------------------------------------------------------
+  remoteName = 'Connecting';
+  isLoading = true;
+  errorMessage = '';
+  provider: VideoProviderId = 'webrtc';
+  embedUrl: SafeResourceUrl | null = null;
+  rawEmbedUrl: string | null = null;
+  providerConfigured = true;
+  jitsiError = '';
+
+  private peerConnection?: RTCPeerConnection;
+  private localStream?: MediaStream;
+  private pendingIceCandidates: RTCIceCandidate[] = [];
+  private subs: Subscription[] = [];
+  private isDestroyed = false;
+  private ending = false;
+  private offerInFlight = false;
+  private pendingOffer?: { sdp: string; from: string };
+  private mediaStarted = false;
+  private jitsiStarted = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private mediaService: MediaService,
-    private signalRService: SignalRService,
-    private accountService: UserService
+    private signaling: SignalingFacade,
+    private accountService: UserService,
+    public video: VideoCallFacade,
+    private jitsi: JitsiMeetService
   ) {}
 
-  // -----------------------------------------------------------------
-  // Lifecycle
-  // -----------------------------------------------------------------
-  ngOnInit(): void {
-    if (this.isDestroyed) return;
-    this.accountService.user.subscribe((x) => (this.user = x));
+  get isNativeWebrtc(): boolean {
+    return this.provider === 'webrtc';
+  }
 
-    // 1. Read route + user
-    this.remoteUserId = this.route.snapshot.paramMap.get('id')!;
-    this.currentUserId = this.user?.userId!.toString() ?? '0';
-    this.isCaller = this.currentUserId !== this.remoteUserId;
-    // 1. Start media + PC
-    this.startMediaAndPeerConnection()
-      .then(() => {
-        this.isLoading = false;
-        // 2. NOW safe to create offer
-        this.setupSignalRHandlers();
-        if (this.isCaller) {
-          this.initiateOffer(); // ← peerConnection is READY
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to start media/PC', err);
+  get isJitsi(): boolean {
+    return this.provider === 'jitsi';
+  }
+
+  @ViewChild('jitsiContainer')
+  set jitsiContainer(el: ElementRef<HTMLDivElement> | undefined) {
+    if (!el || !this.isJitsi || this.jitsiStarted || this.isDestroyed) {
+      return;
+    }
+    this.jitsiStarted = true;
+    this.startJitsi(el.nativeElement);
+  }
+
+  ngOnInit(): void {
+    this.user = this.accountService.userValue;
+    this.remoteUserId = this.route.snapshot.paramMap.get('id') || '';
+    this.currentUserId = String(this.user?.userId ?? '');
+    const role = this.route.snapshot.queryParamMap.get('role');
+    const type = this.route.snapshot.queryParamMap.get('type');
+    this.isCaller = role === 'caller' || (!role && type !== 'rac');
+    this.provider = this.video.provider;
+    this.providerConfigured = this.video.isConfigured();
+    this.rawEmbedUrl = this.video.getEmbedUrl(this.currentUserId, this.remoteUserId);
+    this.embedUrl = this.video.getSafeEmbedUrl(this.currentUserId, this.remoteUserId);
+
+    if (this.remoteUserId) {
+      this.accountService.getUser(this.remoteUserId).subscribe({
+        next: (u) => (this.remoteName = u.userName || this.remoteName),
+        error: () => undefined,
       });
+    }
+
+    this.setupSignalingHandlers();
+
+    if (!this.isNativeWebrtc) {
+      this.isLoading = this.isJitsi;
+    }
   }
 
   ngAfterViewInit(): void {
-    // Attach local preview as soon as video elements exist
-    if (this.localStream) {
-      this.localVideo.nativeElement.srcObject = this.localStream;
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.isDestroyed = true;
-    this.cleanup();
-  }
-
-  // -----------------------------------------------------------------
-  // 1. Media + fresh PeerConnection
-  // -----------------------------------------------------------------
-  private async startMediaAndPeerConnection(): Promise<void> {
-    // ---- get user media ------------------------------------------------
-    await this.mediaService.loadDevices();
-    await this.mediaService.requestPermissions();
-    this.localStream = await this.mediaService.startPreview(
-      this.localVideo.nativeElement
-    );
-
-    // ---- create a *new* PC ------------------------------------------------
-    this.createPeerConnection();
-  }
-
-  private createPeerConnection(): void {
-    // Close any previous (should never happen, but safe)
-    if (
-      this.peerConnection &&
-      this.peerConnection.signalingState !== 'closed'
-    ) {
-      this.peerConnection.close();
-    }
-
-    const config = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-      // add TURN here if you have one
-    };
-    this.peerConnection = new RTCPeerConnection(config);
-
-    // Add local tracks
-    this.localStream.getTracks().forEach((track) => {
-      this.peerConnection.addTrack(track, this.localStream);
-    });
-
-    this.attachPeerConnectionEvents();
-  }
-
-  private attachPeerConnectionEvents(): void {
-    // ---- remote stream --------------------------------------------------
-    this.peerConnection.ontrack = (ev) => {
-      if (this.remoteVideo.nativeElement.srcObject) return;
-      this.remoteVideo.nativeElement.srcObject = ev.streams[0];
-    };
-
-    // ---- ICE candidate --------------------------------------------------
-    this.peerConnection.onicecandidate = (ev) => {
-      if (ev.candidate && !this.isDestroyed) {
-        this.signalRService.sendIceCandidate(this.remoteUserId, ev.candidate);
-      }
-    };
-
-    // ---- ICE state changes ---------------------------------------------
-    this.peerConnection.oniceconnectionstatechange = () => {
-      const state = this.peerConnection.iceConnectionState;
-      console.log('%cICE state →', 'color:orange', state);
-
-      if (state === 'failed' || state === 'closed') {
-        this.restartIceNegotiation();
-      }
-    };
-  }
-
-  // -----------------------------------------------------------------
-  // 2. SignalR handlers (with guards)
-  // -----------------------------------------------------------------
-  private setupSignalRHandlers(): void {
-    // ---- Offer (callee) -------------------------------------------------
-    this.subs.push(
-      this.signalRService.receiveOffer$.subscribe(
-        async ({ sdp: sdpStr, from }) => {
-          if (this.isDestroyed || from !== this.remoteUserId) return;
-
-          const offer = JSON.parse(sdpStr) as RTCSessionDescriptionInit;
-          await this.safeSetRemoteDescription(offer);
-
-          // create answer
-          const answer = await this.peerConnection.createAnswer();
-          await this.peerConnection.setLocalDescription(answer);
-          await this.signalRService.sendAnswer(
-            this.remoteUserId,
-            this.peerConnection.localDescription!
-          );
-        }
-      )
-    );
-
-    // ---- Answer (caller) ------------------------------------------------
-    this.subs.push(
-      this.signalRService.receiveAnswer$.subscribe(
-        async ({ sdp: sdpStr, from }) => {
-          if (this.isDestroyed || from !== this.remoteUserId) return;
-
-          const answer = JSON.parse(sdpStr) as RTCSessionDescriptionInit;
-          await this.safeSetRemoteDescription(answer);
-        }
-      )
-    );
-
-    // ---- ICE candidate --------------------------------------------------
-    this.subs.push(
-      this.signalRService.receiveIceCandidate$.subscribe(
-        ({ candidate: candStr, from }) => {
-          if (this.isDestroyed || from !== this.remoteUserId) return;
-
-          const cand = new RTCIceCandidate(JSON.parse(candStr));
-          if (this.peerConnection.remoteDescription) {
-            this.peerConnection.addIceCandidate(cand).catch(() => {});
-          } else {
-            this.pendingIceCandidates.push(cand);
-          }
-        }
-      )
-    );
-
-    // ---- Call ended -----------------------------------------------------
-    this.subs.push(
-      this.signalRService.callEnded$.subscribe(() => this.endCall())
-    );
-  }
-
-  // -----------------------------------------------------------------
-  // 3. Offer initiation (caller only)
-  // -----------------------------------------------------------------
-  private async initiateOffer(): Promise<void> {
-    try {
-      const offer = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(offer);
-      await this.signalRService.sendOffer(
-        this.remoteUserId,
-        this.peerConnection.localDescription!
-      );
-    } catch (e) {
-      console.error('Offer creation failed', e);
-    }
-  }
-
-  // -----------------------------------------------------------------
-  // 4. Safe setRemoteDescription + flush queued ICE
-  // -----------------------------------------------------------------
-  private async safeSetRemoteDescription(
-    desc: RTCSessionDescriptionInit
-  ): Promise<void> {
-    if (this.isDestroyed) return;
-
-    if (this.peerConnection.signalingState === 'closed') {
-      console.warn('PC closed – recreating');
-      this.createPeerConnection();
-    }
-
-    await this.peerConnection.setRemoteDescription(
-      new RTCSessionDescription(desc)
-    );
-    this.flushPendingIceCandidates();
-  }
-
-  private flushPendingIceCandidates(): void {
-    if (!this.peerConnection.remoteDescription) return;
-
-    this.pendingIceCandidates.forEach((c) => {
-      this.peerConnection.addIceCandidate(c).catch(() => {});
-    });
-    this.pendingIceCandidates = [];
-  }
-
-  // -----------------------------------------------------------------
-  // 5. ICE restart (modern way)
-  // -----------------------------------------------------------------
-  private async restartIceNegotiation(): Promise<void> {
-    if (this.isDestroyed) return;
-    if (this.peerConnection.signalingState !== 'stable') {
-      console.warn('Cannot restart ICE – not stable');
+    if (!this.isNativeWebrtc || this.mediaStarted) {
       return;
     }
-
-    try {
-      const offer = await this.peerConnection.createOffer({ iceRestart: true });
-      await this.peerConnection.setLocalDescription(offer);
-      await this.signalRService.sendOffer(
-        this.remoteUserId,
-        this.peerConnection.localDescription!
-      );
-      console.log('%cICE restart sent', 'color:lime');
-    } catch (e) {
-      console.error('ICE restart failed', e);
-    }
+    this.mediaStarted = true;
+    this.startWebRtc().catch((err) => {
+      console.error('Failed to start media/PC', err);
+      this.errorMessage = 'Could not start the camera or microphone.';
+      this.isLoading = false;
+    });
   }
 
-  // -----------------------------------------------------------------
-  // 6. UI controls
-  // -----------------------------------------------------------------
   toggleMic(): void {
     this.micEnabled = !this.micEnabled;
     this.mediaService.toggleMic(this.micEnabled);
@@ -294,31 +117,238 @@ export class CallRoomComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleCamera(): void {
     this.cameraEnabled = !this.cameraEnabled;
-    this.mediaService.toggleCamera(
-      this.cameraEnabled,
-      this.localVideo.nativeElement
+    this.mediaService.toggleCamera(this.cameraEnabled, this.localVideo?.nativeElement);
+  }
+
+  async endCall(): Promise<void> {
+    if (this.ending) {
+      return;
+    }
+    this.ending = true;
+    if (this.remoteUserId) {
+      await this.signaling.endCall(this.remoteUserId).catch(() => undefined);
+    }
+    if (this.isJitsi) {
+      await this.jitsi.hangup().catch(() => undefined);
+    }
+    await this.cleanup();
+    this.router.navigate(['/messenger']);
+  }
+
+  openExternal(): void {
+    if (this.rawEmbedUrl) {
+      window.open(this.rawEmbedUrl, '_blank', 'noopener');
+    }
+  }
+
+  useWebrtcInstead(): void {
+    this.router.navigate(['/settings']);
+  }
+
+  ngOnDestroy(): void {
+    this.isDestroyed = true;
+    this.cleanup();
+  }
+
+  private async startJitsi(container: HTMLElement): Promise<void> {
+    let join;
+    try {
+      join = await this.video.getJitsiJoinConfig(
+        this.currentUserId,
+        this.remoteUserId,
+        this.user?.userName || `User ${this.currentUserId}`
+      );
+    } catch (err) {
+      console.error('Jitsi JWT failed', err);
+      this.jitsiError =
+        'Jitsi keys in call.config.ts are invalid. Use meet.ffmuc.net with empty keys, or paste a valid JaaS JWT / PKCS#8 private key.';
+      this.isLoading = false;
+      return;
+    }
+    const jwt = join.jwt ? `?jwt=${encodeURIComponent(join.jwt)}` : '';
+    const app = join.appId ? `${encodeURIComponent(join.appId)}/` : '';
+    this.rawEmbedUrl = `https://${join.domain}/${app}${join.roomName}${jwt}`;
+    try {
+      await this.jitsi.join({
+        container,
+        ...join,
+        onLeft: () => {
+          if (!this.ending && !this.isDestroyed) {
+            this.endCall().catch(() => undefined);
+          }
+        },
+      });
+      this.isLoading = false;
+    } catch (err) {
+      console.error('Jitsi failed to start', err);
+      this.jitsiError =
+        'Could not embed Jitsi. Public meet.jit.si often blocks embeds — open the room in a new window, or set a self-hosted / 8x8.vc domain in Settings.';
+      this.isLoading = false;
+    }
+  }
+
+  private async startWebRtc(): Promise<void> {
+    await this.mediaService.loadDevices();
+    const previewEl = this.localVideo?.nativeElement || document.createElement('video');
+    this.localStream = await this.mediaService.startPreview(previewEl);
+    if (this.localVideo) {
+      this.localVideo.nativeElement.srcObject = this.localStream;
+    }
+    this.createPeerConnection();
+    this.isLoading = false;
+    if (this.pendingOffer) {
+      await this.handleOffer(this.pendingOffer.sdp, this.pendingOffer.from);
+      this.pendingOffer = undefined;
+    } else if (this.isCaller) {
+      await this.initiateOffer();
+    }
+  }
+
+  private createPeerConnection(): void {
+    if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
+      this.peerConnection.close();
+    }
+
+    this.peerConnection = new RTCPeerConnection({
+      iceServers: this.video.getIceServers(),
+    });
+
+    this.localStream?.getTracks().forEach((track) => {
+      this.peerConnection!.addTrack(track, this.localStream!);
+    });
+
+    this.peerConnection.ontrack = (ev) => {
+      const remoteEl = this.remoteVideo?.nativeElement;
+      if (remoteEl) {
+        remoteEl.srcObject = ev.streams[0];
+      }
+    };
+
+    this.peerConnection.onicecandidate = (ev) => {
+      if (ev.candidate && !this.isDestroyed) {
+        this.signaling.sendIceCandidate(this.remoteUserId, ev.candidate).catch(() => undefined);
+      }
+    };
+
+    this.peerConnection.oniceconnectionstatechange = () => {
+      const state = this.peerConnection?.iceConnectionState;
+      if (state === 'failed') {
+        this.restartIceNegotiation();
+      }
+    };
+  }
+
+  private setupSignalingHandlers(): void {
+    this.subs.push(
+      this.signaling.receiveOffer$.subscribe(async ({ sdp: sdpStr, from }) => {
+        if (this.isDestroyed || from !== this.remoteUserId) {
+          return;
+        }
+        if (!this.peerConnection) {
+          this.pendingOffer = { sdp: sdpStr, from };
+          return;
+        }
+        await this.handleOffer(sdpStr, from);
+      }),
+      this.signaling.receiveAnswer$.subscribe(async ({ sdp: sdpStr, from }) => {
+        if (this.isDestroyed || from !== this.remoteUserId || !this.peerConnection) {
+          return;
+        }
+        const answer = JSON.parse(sdpStr) as RTCSessionDescriptionInit;
+        await this.safeSetRemoteDescription(answer);
+      }),
+      this.signaling.receiveIceCandidate$.subscribe(({ candidate: candStr, from }) => {
+        if (this.isDestroyed || from !== this.remoteUserId || !this.peerConnection) {
+          return;
+        }
+        const cand = new RTCIceCandidate(JSON.parse(candStr));
+        if (this.peerConnection.remoteDescription) {
+          this.peerConnection.addIceCandidate(cand).catch(() => undefined);
+        } else {
+          this.pendingIceCandidates.push(cand);
+        }
+      }),
+      this.signaling.callEnded$.subscribe(() => this.leaveLocally())
     );
   }
 
- async endCall(): Promise<void> {
-    await this.signalRService.endCall(this.remoteUserId);
-    await this.cleanup();
-    this.router.navigate(['/messenger']); // <-- change to your list page
+  private async handleOffer(sdpStr: string, from: string): Promise<void> {
+    if (!this.peerConnection || from !== this.remoteUserId) {
+      return;
+    }
+    const offer = JSON.parse(sdpStr) as RTCSessionDescriptionInit;
+    await this.safeSetRemoteDescription(offer);
+    const answer = await this.peerConnection.createAnswer();
+    await this.peerConnection.setLocalDescription(answer);
+    await this.signaling.sendAnswer(this.remoteUserId, this.peerConnection.localDescription!);
   }
 
-  // -----------------------------------------------------------------
-  // 7. Cleanup
-  // -----------------------------------------------------------------
-  private async cleanup(): Promise<void> {
-   await this.subs.forEach((s) => s.unsubscribe());
-    this.subs = [];
+  private async initiateOffer(): Promise<void> {
+    if (!this.peerConnection || this.offerInFlight) {
+      return;
+    }
+    this.offerInFlight = true;
+    try {
+      const offer = await this.peerConnection.createOffer();
+      await this.peerConnection.setLocalDescription(offer);
+      await this.signaling.sendOffer(this.remoteUserId, this.peerConnection.localDescription!);
+    } catch (e) {
+      console.error('Offer creation failed', e);
+    } finally {
+      this.offerInFlight = false;
+    }
+  }
 
-    if (
-      this.peerConnection &&
-      this.peerConnection.signalingState !== 'closed'
-    ) {
+  private async safeSetRemoteDescription(desc: RTCSessionDescriptionInit): Promise<void> {
+    if (this.isDestroyed || !this.peerConnection) {
+      return;
+    }
+    if (this.peerConnection.signalingState === 'closed') {
+      this.createPeerConnection();
+    }
+    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
+    this.flushPendingIceCandidates();
+  }
+
+  private flushPendingIceCandidates(): void {
+    if (!this.peerConnection?.remoteDescription) {
+      return;
+    }
+    this.pendingIceCandidates.forEach((c) => {
+      this.peerConnection?.addIceCandidate(c).catch(() => undefined);
+    });
+    this.pendingIceCandidates = [];
+  }
+
+  private async restartIceNegotiation(): Promise<void> {
+    if (this.isDestroyed || this.peerConnection?.signalingState !== 'stable') {
+      return;
+    }
+    try {
+      const offer = await this.peerConnection.createOffer({ iceRestart: true });
+      await this.peerConnection.setLocalDescription(offer);
+      await this.signaling.sendOffer(this.remoteUserId, this.peerConnection.localDescription!);
+    } catch (e) {
+      console.error('ICE restart failed', e);
+    }
+  }
+
+  private async leaveLocally(): Promise<void> {
+    if (this.ending) {
+      return;
+    }
+    this.ending = true;
+    await this.cleanup();
+    this.router.navigate(['/messenger']);
+  }
+
+  private async cleanup(): Promise<void> {
+    this.subs.forEach((s) => s.unsubscribe());
+    this.subs = [];
+    if (this.peerConnection && this.peerConnection.signalingState !== 'closed') {
       this.peerConnection.close();
     }
+    await this.jitsi.dispose().catch(() => undefined);
     await this.mediaService.stopPreview();
   }
 }

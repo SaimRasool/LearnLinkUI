@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { UserVM } from '../models/usersVM';
 import { BehaviorSubject, Observable, catchError, map, throwError } from 'rxjs';
-import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -11,90 +10,92 @@ export class UserService {
   private userSubject: BehaviorSubject<UserVM | null>;
   public user: Observable<UserVM | null>;
   private url: string = '/assets/user.json';
-  constructor(private http: HttpClient, private router: Router) {
-    this.userSubject = new BehaviorSubject<UserVM | null>(
-      JSON.parse(localStorage.getItem('user')!)
-    );
+
+  constructor(private http: HttpClient) {
+    this.userSubject = new BehaviorSubject<UserVM | null>(this.readStoredUser());
     this.user = this.userSubject.asObservable();
   }
 
-  public get userValue(): UserVM|null {
-    return this.userSubject.value!;
+  public get userValue(): UserVM | null {
+    return this.userSubject.value;
   }
 
-  login(username: any, password: any): Observable<any> {
-    return this.http.get<any[]>(this.url).pipe(
-      map((response: any) => {
+  login(username: string, password: string): Observable<UserVM> {
+    return this.http.get<{ users: UserVM[] }>(this.url).pipe(
+      map((response) => {
         const user = response.users.find(
-          (u: UserVM) =>
-            u.userName?.toLowerCase() == username.toLowerCase() &&
-            u.password == password
+          (u) =>
+            u.userName?.toLowerCase() === username.toLowerCase() &&
+            u.password === password
         );
-        if (user) {
-          // Authentication successful
-          this.userSubject.next(user);
-          localStorage.setItem('user', JSON.stringify(user));
-          return user;
-        } else {
-          // Authentication failed
-          // Returning null or throwing an error might be more appropriate here
-          throw new Error('Invalid credentials');
+        if (!user) {
+          throw new Error('Invalid username or password');
         }
+        this.userSubject.next(user);
+        sessionStorage.setItem('user', JSON.stringify(user));
+        localStorage.removeItem('user');
+        return user;
       }),
-      catchError((error) => {
-        // Handle and rethrow the error
-        console.error('Error occurred: ', error);
-        return error;
-      })
+      catchError((error) =>
+        throwError(() =>
+          error instanceof Error ? error.message : 'Unable to login'
+        )
+      )
     );
   }
 
-  logout() {
-    // remove user from local storage and set current user to null
+  logout(): void {
+    sessionStorage.removeItem('user');
     localStorage.removeItem('user');
     this.userSubject.next(null);
   }
-  getUser(userId: any): Observable<any> {
-    return this.http.get<any[]>(this.url).pipe(
-      map((response: any) => {
-        const user = response.users.find((u: UserVM) => u.userId == userId);
-        if (user) {
-          return user;
-        } else {
-          throw new Error('No User Found');
+
+  getUser(userId: string | number): Observable<UserVM> {
+    return this.http.get<{ users: UserVM[] }>(this.url).pipe(
+      map((response) => {
+        const user = response.users.find((u) => String(u.userId) === String(userId));
+        if (!user) {
+          throw new Error('No user found');
         }
+        return user;
       }),
-      catchError((error) => {
-        return error;
-      })
-    );
-  }
-  getUsersByUserIds(userIds: number[]): Observable<any> {
-    return this.http.get<any[]>(this.url).pipe(
-      map((response: any) => {
-        const users = response.users.filter((us: UserVM) =>
-          userIds.includes(us.userId!)
-        );
-        if (users.length > 0) {
-          return users;
-        } else {
-          throw new Error('No User Found');
-        }
-      }),
-      catchError((error) => {
-        return error;
-      })
+      catchError((error) =>
+        throwError(() => (error instanceof Error ? error.message : error))
+      )
     );
   }
 
-  getAllUser(): Observable<any> {
-    return this.http.get<any[]>(this.url).pipe(
-      map((response: any) => {
-        return response;
+  getUsersByUserIds(userIds: number[]): Observable<UserVM[]> {
+    return this.http.get<{ users: UserVM[] }>(this.url).pipe(
+      map((response) => {
+        const users = response.users.filter((us) => userIds.includes(us.userId!));
+        if (users.length === 0) {
+          throw new Error('No user found');
+        }
+        return users;
       }),
-      catchError((error) => {
-        return error;
-      })
+      catchError((error) =>
+        throwError(() => (error instanceof Error ? error.message : error))
+      )
     );
+  }
+
+  getAllUser(): Observable<{ users: UserVM[] }> {
+    return this.http.get<{ users: UserVM[] }>(this.url).pipe(
+      catchError((error) => throwError(() => error))
+    );
+  }
+
+  private readStoredUser(): UserVM | null {
+    try {
+      const fromTab = sessionStorage.getItem('user');
+      if (fromTab) {
+        return JSON.parse(fromTab);
+      }
+      return null;
+    } catch {
+      sessionStorage.removeItem('user');
+      return null;
+    }
   }
 }

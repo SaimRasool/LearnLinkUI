@@ -1,9 +1,22 @@
-/* You can add global styles to this file, and also import other style files */
-    	body,
-    	html {
-    	    height: 100%;
-    	    margin: 0;
-    	    background: #7F7FD5;
-    	    background: -webkit-linear-gradient(to right, #91EAE4, #86A8E7, #7F7FD5);
-    	    background: linear-gradient(to right, #91EAE4, #86A8E7, #7F7FD5);
-    	}
+body,
+html {
+  height: 100%;
+  margin: 0;
+  background: #0b1220;
+  color: #e5e7eb;
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.app-container {
+  min-height: calc(100vh - 64px);
+}
+
+textarea,
+input,
+button {
+  font-family: inherit;
+}

@@ -1,75 +1,61 @@
+<div class="thread-card" *ngIf="hasChannel">
+  <header class="thread-head">
+    <img [src]="channel.image" class="head-avatar" [alt]="channel.channelName" />
+    <div class="head-copy">
+      <h2>{{ channel.channelName }}</h2>
+      <p>
+        <span class="status-dot" [class.offline]="connectionLabel !== 'online'"></span>
+        {{ connectionLabel === 'online' ? 'Online' : 'Connecting…' }}
+        · {{ messageCount }} {{ messageCount === 1 ? 'message' : 'messages' }}
+      </p>
+    </div>
+    <button type="button" class="head-call" title="Start video call" (click)="startVideoCall()">
+      <i class="fas fa-video"></i>
+    </button>
+  </header>
 
-    <div class="card" *ngIf="channel?.channelId!>0" >
-        <div class="card-header msg_head" >
-            <div class="d-flex bd-highlight"  >
-                <div class="img_cont">
-                    <img [src]="channel!.image"
-                        class="rounded-circle user_img">
-                    <span class="online_icon"></span>
-                </div>
-                <div class="user_info">
-                    <span>{{channel!.channelName}}</span>
-                    <p>1767 Messages</p>
-                </div>
-                <!-- <div class="video_cam">
-                    <span><i class="fas fa-video"></i></span>
-                    <span><i class="fas fa-phone"></i></span>
-                </div> -->
-            </div>
-            <!-- <span id="action_menu_btn" (click)="toggle()"><i class="fas fa-ellipsis-v"></i></span>
-            <div class="action_menu" *ngIf="isMenuVisible">
-                <ul>
-                    <li><i class="fas fa-user-circle"></i> View profile</li>
-                    <li><i class="fas fa-users"></i> Add to close friends</li>
-                    <li><i class="fas fa-plus"></i> Add to group</li>
-                    <li><i class="fas fa-ban"></i> Block</li>
-                </ul>
-            </div> -->
+  <div class="thread-body" (scroll)="onScroll($event)" id="messages-flow">
+    <ng-container *ngFor="let item of thread">
+      <div class="day-chip" *ngIf="item.kind === 'day'">{{ item.label }}</div>
+
+      <div
+        *ngIf="item.kind === 'message'"
+        class="msg-row"
+        [id]="'dvmessage_' + item.channelMessageId"
+        [class.self]="item.isSelf"
+        [class.clustered]="item.clustered"
+        [class.first]="item.isFirst"
+        [class.last]="item.isLast"
+      >
+        <div class="avatar-col" *ngIf="!item.isSelf">
+          <img *ngIf="item.showAvatar" [src]="item.image" [alt]="item.userName" />
         </div>
-        <div class="card-body msg_card_body" (scroll)="onScroll($event)" id="messages-flow">
-            <ng-container *ngFor="let message of displayMessagesList" >
-                <div id="{{ 'dvmessage_' + message.channelMessageId }}">
-    <div class="d-flex justify-content-start mb-4" *ngIf="!message.isSelf">
-        <div class="img_cont_msg">
-            <img [src]="message.image" class="rounded-circle user_img_msg">
+
+        <div class="bubble">
+          <span class="msg-text">{{ item.messageContent }}</span>
+          <span class="msg-meta">{{ item.messageDate | date:'h:mm a' }}</span>
         </div>
-        <div class="msg_cotainer">
-            {{message.messageContent}}
-            <span class="msg_time">{{ message.messageDate | date:'yyyy-MM-dd hh:mm:ss a' }}</span>
-        </div>
-    </div>
-    <div class="d-flex justify-content-end mb-4" *ngIf="message.isSelf">
-        <div class="msg_cotainer_send">
-            {{message.messageContent}}
-            <span class="msg_time_send">8:55 AM, Today</span>
-        </div>
-        <div class="img_cont_msg">
-            <img [src]="message.image" class="rounded-circle user_img_msg">
-        </div>
-    </div>
-                </div>
-        
-            </ng-container>
-            
-        </div>
-        <div class="card-footer">
-            <div class="input-group">
-                <div class="input-group-append">
-                    <span class="input-group-text attach_btn"><i class="fas fa-paperclip"></i></span>
-                </div>
-                <textarea name="" class="form-control type_msg" [(ngModel)]="textareaValue" placeholder="Type your message..." (keydown)="handleKeyPress($event)"></textarea>
-                <div class="input-group-append">
-                    <span class="input-group-text send_btn" (click)="addMessage()"><i class="fas fa-location-arrow"></i></span>
-                </div>
-            </div>
-        </div>
-    </div>
-<div class="card" *ngIf="!channel">
-<div class="container">
-    <div class="message-box">
-        <div class="text-center">
-            <h1 style="color: #ffffff;">Select Channel To start Your Chat</h1>
-        </div>
-    </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <footer class="composer">
+    <textarea
+      [(ngModel)]="textareaValue"
+      placeholder="Write a message"
+      rows="1"
+      (keydown)="handleKeyPress($event)"
+    ></textarea>
+    <button type="button" class="send" [disabled]="sending || !textareaValue.trim()" (click)="addMessage()">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </footer>
 </div>
+
+<div class="empty-card" *ngIf="!hasChannel">
+  <div class="empty-copy">
+    <div class="empty-icon"><i class="fas fa-comments"></i></div>
+    <h2>Select a conversation</h2>
+    <p>Pick someone from the left, or start a new chat from the menu.</p>
+  </div>
 </div>

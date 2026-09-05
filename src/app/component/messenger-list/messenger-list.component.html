@@ -1,109 +1,49 @@
-<div class="container-fluid h-100">
-    <div class="row justify-content-center h-100">
-        <div class="col-md-4 col-xl-3 chat">
-            <div class="card mb-sm-3 mb-md-0 contacts_card">
-                <div class="card-header">
-                    <div class="input-group">
-                        <input type="text" placeholder="Search..." name="" class="form-control search">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text search_btn"><i class="fas fa-search"></i></span>
-                        </div>
-                    </div>
-                    <span id="action_menu_btn" (click)="toggle()"><i class="fas fa-ellipsis-v"></i></span>
-                    <div class="action_menu" *ngIf="isMenuVisible">
-                        <ul>
-                            <li *ngFor="let user of userList">
-                                <div class="img_cont">
-                                    <img [src]="user.image" class="rounded-circle user_img">
-                                </div> {{user.userName}}
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body contacts_body">
-                    <ul class="contacts">
-                        <ng-container *ngFor="let channel of channelList">
-                            <li  [ngClass]="{'active': channel.isActive}" >
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center" (click)="selectedChannel(channel)">
-                                        <div class="img_cont">
-                                            <img [src]="channel.image" class="rounded-circle user_img">
-                                            <span class="online_icon"></span>
-                                        </div>
-                                        <div class="user_info">
-                                            <span>{{channel.channelName}}</span>
-                                            <p>{{channel.lastMessageContent}}</p>
-                                        </div>
-                                    </div>
-                                    <div class="call_icon" (click)="startVideoCall(channel, $event)">
-                                         <i class="fa fa-video"></i>
-                                    </div>
-                                </div>
-                            </li>
-                        </ng-container>
-                    
+<div class="messenger-shell">
+  <aside class="contacts-pane">
+    <div class="contacts-card">
+      <div class="contacts-head">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search" [(ngModel)]="searchTerm" />
+        </div>
+        <button type="button" class="icon-btn" (click)="toggle()" title="New chat">
+          <i class="fas fa-plus"></i>
+        </button>
+        <div class="action_menu" *ngIf="isMenuVisible">
+          <p class="menu-title">Start a chat</p>
+          <ul *ngIf="userList.length; else noUsers">
+            <li *ngFor="let person of userList" (click)="startChatWith(person)">
+              <img [src]="person.image" [alt]="person.userName" />
+              {{ person.userName }}
+            </li>
+          </ul>
+          <ng-template #noUsers>
+            <p class="empty-menu">Everyone already has a chat with you.</p>
+          </ng-template>
+        </div>
+      </div>
 
-                    </ul>
-                </div>
-                <!-- <div class="card-footer"></div> -->
-            </div>
-        </div>
-        <div class="col-md-8 col-xl-6 chat">
-            <app-my-messenger [channel]=selecteChannel></app-my-messenger>
-        </div>
+      <ul class="contacts">
+        <li
+          *ngFor="let channel of filteredChannels"
+          [class.active]="channel.isActive"
+          (click)="selectChannel(channel)"
+        >
+          <img [src]="channel.image" [alt]="channel.channelName" />
+          <div class="user_info">
+            <span>{{ channel.channelName }}</span>
+            <p>{{ channel.lastMessageContent }}</p>
+          </div>
+          <button type="button" class="call_icon" title="Start video call" (click)="startVideoCall(channel, $event)">
+            <i class="fa fa-video"></i>
+          </button>
+        </li>
+      </ul>
+      <p class="empty-copy" *ngIf="!filteredChannels.length">No chats match that search.</p>
     </div>
-</div>
+  </aside>
 
-<!-- 
-                        <li>
-                            <div class="d-flex bd-highlight">
-                                <div class="img_cont">
-                                    <img src="https://2.bp.blogspot.com/-8ytYF7cfPkQ/WkPe1-rtrcI/AAAAAAAAGqU/FGfTDVgkcIwmOTtjLka51vineFBExJuSACLcBGAs/s320/31.jpg"
-                                        class="rounded-circle user_img">
-                                    <span class="online_icon offline"></span>
-                                </div>
-                                <div class="user_info">
-                                    <span>Taherah Big</span>
-                                    <p>Taherah left 7 mins ago</p>
-                                </div>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex bd-highlight">
-                                <div class="img_cont">
-                                    <img src="https://i.pinimg.com/originals/ac/b9/90/acb990190ca1ddbb9b20db303375bb58.jpg"
-                                        class="rounded-circle user_img">
-                                    <span class="online_icon"></span>
-                                </div>
-                                <div class="user_info">
-                                    <span>Sami Rafi</span>
-                                    <p>Sami is online</p>
-                                </div>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex bd-highlight">
-                                <div class="img_cont">
-                                    <img src="http://profilepicturesdp.com/wp-content/uploads/2018/07/sweet-girl-profile-pictures-9.jpg"
-                                        class="rounded-circle user_img">
-                                    <span class="online_icon offline"></span>
-                                </div>
-                                <div class="user_info">
-                                    <span>Nargis Hawa</span>
-                                    <p>Nargis left 30 mins ago</p>
-                                </div>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex bd-highlight">
-                                <div class="img_cont">
-                                    <img src="https://static.turbosquid.com/Preview/001214/650/2V/boy-cartoon-3D-model_D.jpg"
-                                        class="rounded-circle user_img">
-                                    <span class="online_icon offline"></span>
-                                </div>
-                                <div class="user_info">
-                                    <span>Rashid Samim</span>
-                                    <p>Rashid left 50 mins ago</p>
-                                </div>
-                            </div>
-                        </li> -->
+  <section class="thread-pane">
+    <app-my-messenger [channel]="selectedChannel"></app-my-messenger>
+  </section>
+</div>

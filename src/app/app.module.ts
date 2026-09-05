@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { CallGridComponent } from './component/call-grid/call-grid.component';
 import { CallRoomComponent } from './component/call-room/call-room.component';
+import { SettingsComponent } from './component/settings/settings.component';
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { CallRoomComponent } from './component/call-room/call-room.component';
     AlertComponent,
     CallGridComponent,
     CallRoomComponent,
-    MessengerComponent
+    MessengerComponent,
+    SettingsComponent,
   ],
   imports: [
     CommonModule,
@@ -31,12 +33,9 @@ import { CallRoomComponent } from './component/call-room/call-room.component';
     AppRoutingModule,
     ReactiveFormsModule,
     HttpClientModule,
-    FormsModule 
-    
+    FormsModule,
   ],
-  providers: [
-
-  ],
-  bootstrap: [AppComponent]
+  providers: [],
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

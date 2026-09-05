@@ -4,6 +4,7 @@ import { MessengerComponent } from './component/messenger/messenger.component';
 import { LoginComponent } from './component/login/login.component';
 import { AuthGuard } from './services/auth.guard';
 import { CallGridComponent } from './component/call-grid/call-grid.component';
+import { SettingsComponent } from './component/settings/settings.component';
 
 const routes: Routes = [
   {
@@ -12,19 +13,22 @@ const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'settings',
+    component: SettingsComponent,
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'call/:id',
     component: CallGridComponent,
     canActivate: [AuthGuard],
   },
-  // { path: 'users', loadChildren: usersModule, canActivate: [AuthGuard] },
   { path: 'login', component: LoginComponent },
-
-  // otherwise redirect to home
+  { path: '', pathMatch: 'full', redirectTo: 'messenger' },
   { path: '**', redirectTo: 'login' },
 ];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  exports: [RouterModule],
 })
-export class AppRoutingModule { }
+export class AppRoutingModule {}

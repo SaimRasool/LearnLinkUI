@@ -1,0 +1,65 @@
+<div class="settings-page">
+  <div class="settings-card">
+    <header>
+      <h1>Servers</h1>
+      <p>
+        Video and SignalR/WebSocket are set in <code>src/app/config/call.config.ts</code>.
+        Restart <code>ng serve</code> after you edit that file.
+      </p>
+    </header>
+
+    <section>
+      <h2>From call.config.ts</h2>
+      <p class="hint">
+        Video: <strong>{{ video.getProviderMeta().name }}</strong>
+        · Signaling: <strong>{{ settings.signalingProvider === 'websocket' ? 'WebSocket' : 'SignalR' }}</strong>
+      </p>
+    </section>
+
+    <section>
+      <h2>LearnLink API</h2>
+      <p class="hint">
+        Visual Studio IIS Express serves <strong>two URLs for the same app</strong>:
+        Swagger at <code>https://localhost:44388</code> and HTTP at
+        <code>http://localhost:21262</code>. Detect prefers HTTPS first.
+      </p>
+      <div class="chips">
+        <button type="button" *ngFor="let host of hostPresets" (click)="useHost(host.url)">
+          {{ host.label }}
+        </button>
+        <button type="button" class="detect" (click)="detectApi()" [disabled]="detecting">
+          {{ detecting ? 'Detecting…' : 'Detect running API' }}
+        </button>
+      </div>
+      <label>LearnLink API
+        <input [(ngModel)]="draft.backendUrl" placeholder="https://localhost:44388" />
+      </label>
+      <label>Message persistence (Express)
+        <input [(ngModel)]="draft.expressUrl" placeholder="http://localhost:3000" />
+      </label>
+    </section>
+
+    <section>
+      <h2>WebRTC ICE (optional TURN)</h2>
+      <label>STUN URL
+        <input [(ngModel)]="draft.stunUrl" placeholder="stun:stun.l.google.com:19302" />
+      </label>
+      <label>TURN URL
+        <input [(ngModel)]="draft.turnUrl" placeholder="turn:your-turn-server:3478" />
+      </label>
+      <div class="split">
+        <label>TURN username
+          <input [(ngModel)]="draft.turnUsername" />
+        </label>
+        <label>TURN credential
+          <input [(ngModel)]="draft.turnCredential" />
+        </label>
+      </div>
+    </section>
+
+    <footer>
+      <button type="button" class="ghost" (click)="reset()">Reset server defaults</button>
+      <button type="button" class="primary" (click)="save()">Save &amp; return</button>
+    </footer>
+  </div>
+</div>

@@ -1,33 +1,44 @@
+<div class="login-wrap">
+  <div class="login-card">
+    <img src="assets/brand/learnlink-logo.png" alt="LearnLink" class="login-logo" />
+    <h1 class="sr-only">LearnLink</h1>
+    <p>
+      Practice chat and video calls. Open a <strong>second tab</strong> (or Incognito),
+      sign in as a <strong>different</strong> user, then message or call.
+    </p>
 
-<div class="col-md-6 offset-md-3 mt-5">
-    <div class="card">
-        <h4 class="card-header">Login</h4>
-        <div class="card-body">
-            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" formControlName="username" class="form-control"
-                        [ngClass]="{ 'is-invalid': submitted && loginForm.get('username')?.errors }" />
-                    <div *ngIf="submitted && loginForm.get('username')?.errors" class="invalid-feedback">
-                        <div *ngIf="loginForm?.get('username')?.errors?.['required']">Username is required</div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" formControlName="password" class="form-control"
-                        [ngClass]="{ 'is-invalid': submitted && loginForm.get('password')?.errors }" />
-                    <div *ngIf="submitted && loginForm.get('password')?.errors" class="invalid-feedback">
-                        <div *ngIf="loginForm.get('password')?.errors?.['required']">Password is required</div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <button [disabled]="loading" class="btn btn-primary">
-                        <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
-                        Login
-                    </button>
-                </div>
-            </form>
-        </div>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <label>
+        Username
+        <input
+          type="text"
+          formControlName="username"
+          [class.invalid]="submitted && loginForm.get('username')?.errors"
+        />
+      </label>
+      <div class="error" *ngIf="submitted && loginForm.get('username')?.errors">Username is required</div>
+
+      <label>
+        Password
+        <input
+          type="password"
+          formControlName="password"
+          [class.invalid]="submitted && loginForm.get('password')?.errors"
+        />
+      </label>
+      <div class="error" *ngIf="submitted && loginForm.get('password')?.errors">Password is required</div>
+
+      <button type="submit" [disabled]="loading">
+        <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+        Login
+      </button>
+    </form>
+
+    <div class="demo">
+      <span>Quick users (password <code>123456</code>)</span>
+      <div class="chips">
+        <button type="button" *ngFor="let name of demoUsers" (click)="fillDemo(name)">{{ name }}</button>
+      </div>
     </div>
+  </div>
 </div>
-

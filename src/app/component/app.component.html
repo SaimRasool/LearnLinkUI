@@ -1,32 +1,43 @@
-
-<!-- nav -->
-<nav class="navbar navbar-expand navbar-dark bg-dark" *ngIf="user">
-    <div class="navbar-nav">
-        <a class="nav-item nav-link" routerLink="/messenger" routerLinkActive="active"
-            [routerLinkActiveOptions]="{exact: true}">Messenger</a>
-        <a class="nav-item nav-link" (click)="logout()">Logout</a>
-        <div class="img_cont">
-            <img [src]="user!.image" class="rounded-circle user_img">
-        </div>
-        <p>Welcome <b>{{user!.userName}}</b> </p>
-    </div>
+<nav class="app-nav" *ngIf="user && !hideChrome">
+  <a class="brand" routerLink="/messenger">
+    <img src="assets/brand/learnlink-icon.png" alt="" class="brand-mark" />
+    <span>LearnLink</span>
+  </a>
+  <div class="nav-links">
+    <a routerLink="/messenger" routerLinkActive="active">Messenger</a>
+    <a routerLink="/settings" routerLinkActive="active">Settings</a>
+    <button type="button" class="link-btn" (click)="logout()">Logout</button>
+  </div>
+  <div class="nav-meta">
+    <button
+      type="button"
+      class="pill"
+      [class.online]="connectionState === 'open'"
+      [class.pending]="connectionState === 'connecting'"
+      [title]="signaling.lastError || (connectionState === 'open' ? signalingLabel : 'Click to reconnect')"
+      (click)="reconnectSignaling()"
+    >
+      {{ connectionState === 'open' ? signalingLabel : connectionState }}
+    </button>
+    <span class="pill muted">{{ videoLabel }}</span>
+    <img *ngIf="user.image" [src]="user.image" [alt]="user.userName" class="nav-avatar" />
+    <span class="welcome">{{ user.userName }}</span>
+  </div>
 </nav>
 
-<!-- main app container -->
-<div class="app-container" >
-    <alert></alert>
-    <!-- <app-messenger></app-messenger> -->
-    <router-outlet></router-outlet>
+<div class="app-container" [class.call-mode]="hideChrome">
+  <alert></alert>
+  <router-outlet></router-outlet>
 </div>
-<ng-container *ngIf="callerUserId">
-    <div class="incoming-call-overlay">
-        <div class="incoming-call-card">
-            <h3>Incoming Call</h3>
-            <p>From: <strong>{{ callerUserId }}</strong></p>
-            <div class="actions">
-                <button class="btn-decline" (click)="declineCall()">Decline</button>
-                <button class="btn-accept" (click)="acceptCall()">Accept</button>
-            </div>
-        </div>
+
+<div class="incoming-call-overlay" *ngIf="callerUserId">
+  <div class="incoming-call-card">
+    <img *ngIf="callerImage" [src]="callerImage" [alt]="callerName" class="caller-avatar" />
+    <h3>Incoming call</h3>
+    <p>From <strong>{{ callerName }}</strong></p>
+    <div class="actions">
+      <button class="btn-decline" type="button" (click)="declineCall()">Decline</button>
+      <button class="btn-accept" type="button" (click)="acceptCall()">Accept</button>
     </div>
-</ng-container>
+  </div>
+</div>

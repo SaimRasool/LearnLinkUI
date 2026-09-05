@@ -1,70 +1,83 @@
 <ng-container *ngIf="showCallGrid">
-<div class="setup-container">
-    <h2 class="title">Device Setup</h2>
+  <div class="setup-container">
+    <h2 class="title">Ready to call {{ remoteName }}</h2>
+    <p class="subtitle">Using {{ video.getProviderMeta().name }}</p>
+    <p class="subtitle" *ngIf="!needsLocalPreview">
+      After they accept, both of you join the same {{ video.getProviderMeta().name }} room.
+    </p>
+    <p class="subtitle" *ngIf="!signalingOpen">
+      Signaling is offline. You can still join {{ video.getProviderMeta().name }}; the other person must join from the same chat.
+    </p>
 
-    <div class="selectors">
+    <ng-container *ngIf="needsLocalPreview">
+      <div class="selectors">
         <div class="device-select">
-            <label for="camera">Camera</label>
-        <select #cam [(ngModel)]="selectedCamId"  (change)="onDeviceChange(cam.value, null, null)">
-            <option *ngFor="let cam of videoDevices$ | async" [value]="cam.deviceId">
-                {{ cam.label || 'Camera ' + cam.deviceId }}
+          <label for="camera">Camera</label>
+          <select #cam [(ngModel)]="selectedCamId" (change)="onDeviceChange(cam.value, null, null)">
+            <option *ngFor="let device of videoDevices$ | async" [value]="device.deviceId">
+              {{ device.label || 'Camera ' + device.deviceId }}
             </option>
-        </select>
+          </select>
         </div>
 
         <div class="device-select">
-            <label for="microphone">Microphone</label>
-            <select [(ngModel)]="selectedMicId" #mic (change)="onDeviceChange(null, mic.value, null)">
-                <option *ngFor="let mic of audioInputs$ | async" [value]="mic.deviceId">
-                    {{ mic.label || 'Microphone ' + mic.deviceId }}
-                </option>
-            </select>
-        </div>
-
-        <div class="device-select">
-            <label for="speaker">Speaker</label>
-        <select #spk (change)="onDeviceChange(null, null, spk.value)">
-            <option *ngFor="let spk of audioOutputs$ | async" [value]="spk.deviceId">
-                {{ spk.label || 'Speaker ' + spk.deviceId }}
+          <label for="microphone">Microphone</label>
+          <select [(ngModel)]="selectedMicId" #mic (change)="onDeviceChange(null, mic.value, null)">
+            <option *ngFor="let device of audioInputs$ | async" [value]="device.deviceId">
+              {{ device.label || 'Microphone ' + device.deviceId }}
             </option>
-        </select>
+          </select>
         </div>
-    </div>
 
-    <div class="video-container">
+        <div class="device-select">
+          <label for="speaker">Speaker</label>
+          <select #spk (change)="onDeviceChange(null, null, spk.value)">
+            <option *ngFor="let device of audioOutputs$ | async" [value]="device.deviceId">
+              {{ device.label || 'Speaker ' + device.deviceId }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="video-container">
         <video #videoPreview autoplay playsinline muted></video>
-    </div>
+      </div>
 
-    <div class="controls">
-<button (click)="toggleMic()" [class.muted]="mediaService.microphonePrivacy">
-    <i class="fa" [ngClass]="{
-      'fa-microphone': !mediaService.microphonePrivacy,
-      'fa-microphone-slash text-red-500': mediaService.microphonePrivacy
-  }"></i>
-    <span *ngIf="mediaService.micPermission === 'denied'" class="warning-icon">⚠️</span>
-    {{ mediaService.microphonePrivacy ? 'Unmute Mic' : 'Mute Mic' }}
-</button>
-
-<button (click)="toggleCamera()" [class.off]="mediaService.cameraPrivacy">
-    <i class="fa" [ngClass]="{
-      'fa-video': !mediaService.cameraPrivacy,
-      'fa-video-slash text-red-500': mediaService.cameraPrivacy
-  }"></i>
-    <span *ngIf="mediaService.camPermission === 'denied'" class="warning-icon">⚠️</span>
-    {{ mediaService.cameraPrivacy ? 'Turn On Camera' : 'Turn Off Camera' }}
-</button>
-    </div>
-    <div class="permission-warning"
-        *ngIf="mediaService.camPermission === 'denied' || mediaService.micPermission === 'denied'">
-        <p>⚠️ Please allow camera and microphone access to continue.</p>
-        <button (click)="retryPermission()">Try Again</button>
-    </div>
-    <div>
-        <button (click)="joinCall()">Join Call
+      <div class="controls">
+        <button type="button" (click)="toggleMic()" [class.muted]="mediaService.microphonePrivacy">
+          <i class="fa" [ngClass]="{
+            'fa-microphone': !mediaService.microphonePrivacy,
+            'fa-microphone-slash': mediaService.microphonePrivacy
+          }"></i>
+          {{ mediaService.microphonePrivacy ? 'Unmute mic' : 'Mute mic' }}
         </button>
-    </div>
-</div>
 
+        <button type="button" (click)="toggleCamera()" [class.off]="mediaService.cameraPrivacy">
+          <i class="fa" [ngClass]="{
+            'fa-video': !mediaService.cameraPrivacy,
+            'fa-video-slash': mediaService.cameraPrivacy
+          }"></i>
+          {{ mediaService.cameraPrivacy ? 'Turn on camera' : 'Turn off camera' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <div
+      class="permission-warning"
+      *ngIf="needsLocalPreview && (mediaService.camPermission === 'denied' || mediaService.micPermission === 'denied')"
+    >
+      <p>Please allow camera and microphone access to continue.</p>
+      <button type="button" (click)="retryPermission()">Try again</button>
+    </div>
+
+    <p class="waiting" *ngIf="waitingForAnswer && needsLocalPreview">Ringing {{ remoteName }}…</p>
+    <div class="actions">
+      <button type="button" class="ghost" (click)="cancelCall()">Cancel</button>
+      <button type="button" class="join" (click)="joinCall()" [disabled]="waitingForAnswer">
+        {{ waitingForAnswer ? 'Waiting…' : 'Join call' }}
+      </button>
+    </div>
+  </div>
 </ng-container>
 
 <app-call-room *ngIf="!showCallGrid"></app-call-room>
