@@ -1,44 +1,34 @@
 import { SignalingProviderId, VideoProviderId } from '../models/app-settings';
 
 /**
- * Edit this file, then restart `ng serve`.
- * Every user uses the same video engine and the same signaling transport.
+ * Defaults for signaling and video. Settings can override video + Zoom/Jitsi
+ * without a rebuild. Signaling still comes from this file — restart ng serve
+ * after you change signalingProvider.
  *
  * signalingProvider:
  *   'signalr'   — ASP.NET SignalR hub (recommended)
  *   'websocket' — raw JSON WebSocket on the same API
  *
  * videoProvider:
- *   'jitsi'   — Jitsi Meet (recommended now)
- *   'zoom'    — later; fill zoom.* first
  *   'webrtc'  — built-in peer-to-peer
- *   'vidyo'   — later
+ *   'jitsi'   — Jitsi External API. Unique room per pair.
+ *   'zoom'    — Zoom Video SDK. Unique session per pair (learnlink-{id}-{id}).
+ *   'vidyo'   — iframe join only
  *
- * backendUrl — Communication API. IIS Express in Visual Studio is usually:
- *   https://localhost:44388   (Swagger)
- *   http://localhost:21262    (same process, HTTP — no certificate)
+ * --- Jitsi ---
  *
- * --- Free Jitsi options ---
+ * A) No account: domain 'meet.ffmuc.net', leave JaaS fields empty.
+ * B) 8x8 JaaS: domain '8x8.vc' plus appId / apiKeyId / PKCS#8 private key.
+ * C) Self-hosted: set domain to your Jitsi host.
  *
- * A) No account (works today)
- *    domain: 'meet.ffmuc.net'
- *    leave appId / apiKeyId / privateKey / jwt empty
+ * --- Zoom Video SDK ---
  *
- * B) Official 8x8 JaaS (free Developer plan, API keys + JWT)
- *    1. Open https://jaas.8x8.vc/ and create a free Developer account
- *    2. Copy AppID (vpaas-magic-cookie-…)
- *    3. API keys → Generate API key pair → download the private key (.pk)
- *    4. Copy the Key ID (kid)
- *    5. Set domain '8x8.vc', paste appId, apiKeyId, and the PEM private key
- *    The app signs a short-lived JWT at join time. Do not commit the private key.
+ * 1. Create a Video SDK app at https://marketplace.zoom.us/ (not Meeting SDK)
+ * 2. Copy SDK Key and SDK Secret
+ * 3. Paste them in Settings, or set Zoom:ClientId / Zoom:ClientSecret on LearnLink API
+ * 4. Optional session passcode (max 10 characters) — both users must use the same one
  *
- *    meet.jit.si is not usable in an embed: it forces a moderator login.
- *
- * C) Your own Jitsi server (official / company use, no 8x8 bill)
- *    Install Jitsi on a VM (see the self-host steps). Then only change:
- *      domain: 'meet.yourcompany.com'
- *    Leave appId / apiKeyId / privateKey / jwt empty unless you later enable JWT.
- *    The rest of the Angular/SignalR code stays the same.
+ * No Zoom meeting number is needed. Ali calling Haris joins session learnlink-1-2.
  */
 export const CALL_CONFIG = {
   signalingProvider: 'signalr' as SignalingProviderId,

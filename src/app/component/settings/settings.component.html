@@ -1,19 +1,79 @@
 <div class="settings-page">
   <div class="settings-card">
     <header>
-      <h1>Servers</h1>
+      <h1>Servers &amp; video</h1>
       <p>
-        Video and SignalR/WebSocket are set in <code>src/app/config/call.config.ts</code>.
-        Restart <code>ng serve</code> after you edit that file.
+        Pick a video engine and paste Zoom or Jitsi credentials here.
+        Signaling still comes from <code>src/app/config/call.config.ts</code>.
       </p>
     </header>
 
     <section>
-      <h2>From call.config.ts</h2>
+      <h2>Video engine</h2>
       <p class="hint">
-        Video: <strong>{{ video.getProviderMeta().name }}</strong>
-        · Signaling: <strong>{{ settings.signalingProvider === 'websocket' ? 'WebSocket' : 'SignalR' }}</strong>
+        <strong>Jitsi</strong> and <strong>Zoom Video SDK</strong> each create a unique room per pair.
+        WebRTC is peer-to-peer through LearnLink API.
       </p>
+      <div class="option-grid">
+        <button
+          type="button"
+          class="option-card"
+          *ngFor="let provider of video.providers"
+          [class.active]="draft.videoProvider === provider.id"
+          (click)="selectProvider(provider.id)"
+        >
+          <strong>{{ provider.name }}</strong>
+          <span>{{ provider.description }}</span>
+        </button>
+      </div>
+    </section>
+
+    <section *ngIf="draft.videoProvider === 'jitsi'">
+      <h2>Jitsi Meet SDK</h2>
+      <p class="hint">
+        Leave keys empty to use the public <code>meet.ffmuc.net</code> embed.
+        For 8x8 JaaS, set domain <code>8x8.vc</code> and paste the App ID, Key ID, and PKCS#8 private key.
+      </p>
+      <label>Jitsi domain
+        <input [(ngModel)]="draft.jitsiDomain" placeholder="meet.ffmuc.net" />
+      </label>
+      <label>Room prefix
+        <input [(ngModel)]="draft.jitsiRoomPrefix" placeholder="learnlink" />
+      </label>
+      <label>JaaS App ID (optional)
+        <input [(ngModel)]="draft.jitsiAppId" placeholder="vpaas-magic-cookie-…" />
+      </label>
+      <div class="split">
+        <label>API key ID
+          <input [(ngModel)]="draft.jitsiApiKeyId" />
+        </label>
+        <label>Ready-made JWT
+          <input [(ngModel)]="draft.jitsiJwt" />
+        </label>
+      </div>
+      <label>PKCS#8 private key
+        <textarea [(ngModel)]="draft.jitsiPrivateKey" rows="5" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+      </label>
+    </section>
+
+    <section *ngIf="draft.videoProvider === 'zoom'">
+      <h2>Zoom Video SDK</h2>
+      <p class="hint">
+        Create a <strong>Video SDK</strong> app at
+        <a href="https://marketplace.zoom.us/" target="_blank" rel="noopener">marketplace.zoom.us</a>
+        (not Meeting SDK). Copy the SDK Key and SDK Secret. Each 1:1 call uses session
+        <code>learnlink-&#123;smallerId&#125;-&#123;largerId&#125;</code> — no Zoom meeting number.
+        Prefer putting the secret on LearnLink API so the browser does not store it.
+      </p>
+      <label>SDK Key
+        <input [(ngModel)]="draft.zoomSdkKey" autocomplete="off" />
+      </label>
+      <label>SDK Secret
+        <input [(ngModel)]="draft.zoomSdkSecret" type="password" autocomplete="off" />
+      </label>
+      <label>Session passcode (optional, max 10 characters)
+        <input [(ngModel)]="draft.zoomPasscode" maxlength="10" placeholder="same for both users" />
+      </label>
     </section>
 
     <section>
@@ -22,6 +82,7 @@
         Visual Studio IIS Express serves <strong>two URLs for the same app</strong>:
         Swagger at <code>https://localhost:44388</code> and HTTP at
         <code>http://localhost:21262</code>. Detect prefers HTTPS first.
+        Zoom Video SDK tokens are <code>POST /api/zoom/token</code>.
       </p>
       <div class="chips">
         <button type="button" *ngFor="let host of hostPresets" (click)="useHost(host.url)">
@@ -58,7 +119,7 @@
     </section>
 
     <footer>
-      <button type="button" class="ghost" (click)="reset()">Reset server defaults</button>
+      <button type="button" class="ghost" (click)="reset()">Reset defaults</button>
       <button type="button" class="primary" (click)="save()">Save &amp; return</button>
     </footer>
   </div>

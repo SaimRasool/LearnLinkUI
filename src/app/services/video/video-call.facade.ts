@@ -9,6 +9,8 @@ export interface VideoProviderOption {
   name: string;
   description: string;
   needsCredentials: boolean;
+  screenShare: boolean;
+  recording: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -19,24 +21,32 @@ export class VideoCallFacade {
       name: 'WebRTC (default)',
       description: 'Peer-to-peer video through your own signaling server.',
       needsCredentials: false,
+      screenShare: true,
+      recording: true,
     },
     {
       id: 'jitsi',
-      name: 'Jitsi Meet',
-      description: 'Each pair joins a unique room via the Jitsi External API.',
+      name: 'Jitsi Meet SDK',
+      description: 'Official Jitsi External API. Each pair gets a unique room. Works without keys on meet.ffmuc.net.',
       needsCredentials: false,
+      screenShare: true,
+      recording: false,
     },
     {
       id: 'zoom',
-      name: 'Zoom',
-      description: 'Later: Meeting SDK. For now, join with a meeting number.',
+      name: 'Zoom Video SDK',
+      description: 'Official Zoom Video SDK. Each pair gets a unique session, like Jitsi. Needs SDK Key / Secret.',
       needsCredentials: true,
+      screenShare: false,
+      recording: false,
     },
     {
       id: 'vidyo',
       name: 'Vidyo',
       description: 'Join a Vidyo room. Add host / room / token in Settings.',
       needsCredentials: true,
+      screenShare: false,
+      recording: true,
     },
   ];
 
@@ -47,6 +57,14 @@ export class VideoCallFacade {
 
   get provider(): VideoProviderId {
     return this.settings.videoProvider;
+  }
+
+  get zoomPasscode(): string {
+    return (this.settings.current.zoomPasscode || '').slice(0, 10);
+  }
+
+  zoomSessionName(localUserId: string, remoteUserId: string): string {
+    return this.sessionId(localUserId, remoteUserId);
   }
 
   getProviderMeta(id: VideoProviderId = this.provider): VideoProviderOption {
@@ -61,8 +79,16 @@ export class VideoCallFacade {
     return this.provider === 'jitsi';
   }
 
+  isZoom(): boolean {
+    return this.provider === 'zoom';
+  }
+
   usesLocalPreview(): boolean {
-    return this.provider === 'webrtc';
+    return true;
+  }
+
+  get features(): Pick<VideoProviderOption, 'screenShare' | 'recording'> {
+    return this.getProviderMeta();
   }
 
   isConfigured(id: VideoProviderId = this.provider): boolean {
@@ -73,7 +99,7 @@ export class VideoCallFacade {
       case 'jitsi':
         return !!this.normalizedJitsiDomain();
       case 'zoom':
-        return !!s.zoomMeetingNumber;
+        return true;
       case 'vidyo':
         return !!s.vidyoHost;
       default:
@@ -151,13 +177,7 @@ export class VideoCallFacade {
         return `https://${domain}/${s.jitsiAppId ? `${encodeURIComponent(s.jitsiAppId)}/` : ''}${jitsiRoom}${jwt}#userInfo.displayName="${displayName}"&config.prejoinPageEnabled=false`;
       }
       case 'zoom':
-        if (!s.zoomMeetingNumber) {
-          return null;
-        }
-        const pwd = s.zoomPasscode
-          ? `?pwd=${encodeURIComponent(s.zoomPasscode)}`
-          : '';
-        return `https://zoom.us/wc/join/${encodeURIComponent(s.zoomMeetingNumber)}${pwd}`;
+        return null;
       case 'vidyo':
         if (!s.vidyoHost) {
           return null;

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AppSettings } from '../../models/app-settings';
+import { AppSettings, VideoProviderId } from '../../models/app-settings';
 import { AppSettingsService } from '../../services/app-settings.service';
 import { BackendLocatorService } from '../../services/backend-locator.service';
 import { AlertService } from '../../services/alert.service';
@@ -33,6 +33,10 @@ export class SettingsComponent implements OnInit {
     this.draft = { ...this.settings.current };
   }
 
+  selectProvider(id: VideoProviderId): void {
+    this.draft.videoProvider = id;
+  }
+
   useHost(url: string): void {
     this.draft.backendUrl = url;
   }
@@ -54,7 +58,7 @@ export class SettingsComponent implements OnInit {
 
   save(): void {
     this.settings.update(this.draft);
-    this.alertService.success('Server settings saved.');
+    this.alertService.success('Call and server settings saved.');
     this.router.navigate(['/messenger']);
   }
 

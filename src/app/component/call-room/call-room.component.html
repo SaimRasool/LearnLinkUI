@@ -1,58 +1,47 @@
 <div class="call-container">
   <div class="call-banner">
     <strong>{{ remoteName }}</strong>
-    <span>{{ video.getProviderMeta().name }}</span>
+    <span class="provider-pill">{{ providerName }}</span>
   </div>
 
-  <ng-container *ngIf="isNativeWebrtc; else embedCall">
-    <div class="status" *ngIf="isLoading">Connecting camera and peer connection…</div>
-    <div class="status error" *ngIf="errorMessage">{{ errorMessage }}</div>
-    <video #remoteVideo class="remote-video" autoplay playsinline></video>
-    <video #localVideo class="local-video" autoplay playsinline muted></video>
+  <div class="status" *ngIf="isLoading">Connecting…</div>
+  <div class="status error" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-    <div class="controls">
-      <button type="button" (click)="toggleMic()" class="control-btn">
-        {{ micEnabled ? 'Mute' : 'Unmute' }}
-      </button>
-      <button type="button" (click)="toggleCamera()" class="control-btn">
-        {{ cameraEnabled ? 'Camera off' : 'Camera on' }}
-      </button>
-      <button type="button" (click)="endCall()" class="end-btn">End call</button>
-    </div>
-  </ng-container>
+  <video
+    #remoteVideo
+    class="remote-video"
+    [class.off]="!usesRemoteVideo"
+    autoplay
+    playsinline
+  ></video>
+  <div #providerHost class="remote-video provider-host" [class.off]="usesRemoteVideo"></div>
+  <video #localVideo class="local-video" autoplay playsinline muted></video>
 
-  <ng-template #embedCall>
-    <div class="embed-wrap" *ngIf="isJitsi && providerConfigured; else iframeCall">
-      <div class="status" *ngIf="isLoading">Starting Jitsi room…</div>
-      <div class="status error" *ngIf="jitsiError">{{ jitsiError }}</div>
-      <div #jitsiContainer class="jitsi-host" [class.hidden]="!!jitsiError"></div>
-      <div class="controls">
-        <button type="button" class="control-btn" (click)="openExternal()" *ngIf="rawEmbedUrl">
-          Open in new window
-        </button>
-        <button type="button" (click)="endCall()" class="end-btn">Leave</button>
-      </div>
-    </div>
-  </ng-template>
-
-  <ng-template #iframeCall>
-    <div class="embed-wrap" *ngIf="providerConfigured && embedUrl; else missingConfig">
-      <iframe [src]="embedUrl" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
-      <div class="controls">
-        <button type="button" class="control-btn" (click)="openExternal()">Open in new window</button>
-        <button type="button" (click)="endCall()" class="end-btn">Leave</button>
-      </div>
-    </div>
-  </ng-template>
+  <div class="controls">
+    <button type="button" (click)="toggleMic()" class="control-btn">
+      {{ media.microphonePrivacy ? 'Unmute' : 'Mute' }}
+    </button>
+    <button type="button" (click)="toggleCamera()" class="control-btn">
+      {{ media.cameraPrivacy ? 'Camera on' : 'Camera off' }}
+    </button>
+    <button
+      *ngIf="canShare"
+      type="button"
+      (click)="toggleShare()"
+      class="control-btn"
+      [class.active]="media.sharingScreen"
+    >
+      {{ media.sharingScreen ? 'Stop share' : 'Share screen' }}
+    </button>
+    <button
+      *ngIf="canRecord"
+      type="button"
+      (click)="toggleRecord()"
+      class="control-btn"
+      [class.active]="media.recording"
+    >
+      {{ media.recording ? 'Stop rec' : 'Record' }}
+    </button>
+    <button type="button" (click)="endCall()" class="end-btn">End call</button>
+  </div>
 </div>
-
-<ng-template #missingConfig>
-  <div class="missing">
-    <h2>{{ video.getProviderMeta().name }} is not configured</h2>
-    <p>{{ video.getProviderMeta().description }}</p>
-    <div class="controls">
-      <button type="button" class="control-btn" (click)="useWebrtcInstead()">Open settings</button>
-      <button type="button" class="end-btn" (click)="endCall()">Back to messenger</button>
-    </div>
-  </div>
-</ng-template>

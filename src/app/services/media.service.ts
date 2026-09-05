@@ -8,8 +8,13 @@ export class MediaService {
   videoDevices$ = new BehaviorSubject<MediaDeviceInfo[]>([]);
 
   private currentStream?: MediaStream;
+  private screenStream?: MediaStream;
+  private recorder?: MediaRecorder;
+  private recordedChunks: Blob[] = [];
   cameraPrivacy = false;
   microphonePrivacy = false;
+  sharingScreen = false;
+  recording = false;
   micPermission: 'granted' | 'denied' | 'prompt' | undefined;
   camPermission: 'granted' | 'denied' | 'prompt' | undefined;
 
@@ -59,6 +64,8 @@ export class MediaService {
   }
 
   async stopPreview(): Promise<void> {
+    this.stopRecording();
+    this.stopScreenShare();
     this.currentStream?.getTracks().forEach((t) => t.stop());
     this.currentStream = undefined;
   }
@@ -146,6 +153,61 @@ export class MediaService {
 
   async initPermissions(): Promise<void> {
     await this.checkPermissions();
+  }
+
+  attach(videoElement: HTMLVideoElement, stream = this.currentStream): void {
+    videoElement.srcObject = stream ?? null;
+  }
+
+  async startScreenShare(): Promise<MediaStream> {
+    this.stopScreenShare();
+    this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    this.sharingScreen = true;
+    const track = this.screenStream.getVideoTracks()[0];
+    track.onended = () => this.stopScreenShare();
+    return this.screenStream;
+  }
+
+  stopScreenShare(): void {
+    this.screenStream?.getTracks().forEach((track) => track.stop());
+    this.screenStream = undefined;
+    this.sharingScreen = false;
+  }
+
+  getScreenStream(): MediaStream | undefined {
+    return this.screenStream;
+  }
+
+  startRecording(): void {
+    if (!this.currentStream || this.recording) {
+      return;
+    }
+    this.recordedChunks = [];
+    this.recorder = new MediaRecorder(this.currentStream);
+    this.recorder.ondataavailable = (event) => {
+      if (event.data.size) {
+        this.recordedChunks.push(event.data);
+      }
+    };
+    this.recorder.onstop = () => {
+      const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `learnlink-call-${Date.now()}.webm`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    this.recorder.start();
+    this.recording = true;
+  }
+
+  stopRecording(): void {
+    if (this.recorder && this.recorder.state !== 'inactive') {
+      this.recorder.stop();
+    }
+    this.recorder = undefined;
+    this.recording = false;
   }
 
   prependNoneOption(

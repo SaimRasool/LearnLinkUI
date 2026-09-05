@@ -40,10 +40,6 @@ export class CallGridComponent implements OnInit, OnDestroy, AfterViewInit {
     private alertService: AlertService
   ) {}
 
-  get needsLocalPreview(): boolean {
-    return this.video.usesLocalPreview();
-  }
-
   get signalingOpen(): boolean {
     return this.signaling.isOpen;
   }
@@ -57,7 +53,7 @@ export class CallGridComponent implements OnInit, OnDestroy, AfterViewInit {
     const type = this.route.snapshot.queryParamMap.get('type');
     const roleParam = this.route.snapshot.queryParamMap.get('role');
     this.role = roleParam === 'callee' || type === 'rac' ? 'callee' : 'caller';
-    this.showCallGrid = this.role === 'caller';
+    this.showCallGrid = true;
 
     this.subs.push(
       this.audioInputs$.subscribe((mics) => {
@@ -86,14 +82,12 @@ export class CallGridComponent implements OnInit, OnDestroy, AfterViewInit {
       });
     }
 
-    if (this.needsLocalPreview) {
-      await this.mediaService.initPermissions();
-      await this.mediaService.loadDevices();
-    }
+    await this.mediaService.initPermissions();
+    await this.mediaService.loadDevices();
   }
 
   async ngAfterViewInit(): Promise<void> {
-    if (!this.showCallGrid || !this.needsLocalPreview || !this.videoPreview) {
+    if (!this.showCallGrid || !this.videoPreview) {
       return;
     }
     try {
@@ -162,25 +156,18 @@ export class CallGridComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     this.waitingForAnswer = true;
-    const joinWithoutRing = !this.video.usesLocalPreview();
+    if (this.role === 'callee') {
+      this.enterRoom();
+      return;
+    }
 
     try {
       if (!this.signaling.isOpen) {
         await this.signaling.connect(String(this.user.userId));
       }
       await this.signaling.initiateCall(String(this.user.userId), this.receiverId);
-      if (joinWithoutRing) {
-        this.enterRoom();
-      }
     } catch (err) {
       console.error(err);
-      if (joinWithoutRing) {
-        this.alertService.info(
-          'Could not ring the other person. Joining the meeting anyway — they can open the same chat and join.'
-        );
-        this.enterRoom();
-        return;
-      }
       this.waitingForAnswer = false;
       this.alertService.error(
         'Could not start the call. In Settings, click “Detect running API”, or start the Communication project.'
@@ -203,7 +190,6 @@ export class CallGridComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private enterRoom(): void {
-    this.mediaService.stopPreview();
     this.showCallGrid = false;
     this.waitingForAnswer = false;
   }

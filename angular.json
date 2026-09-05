@@ -25,9 +25,13 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/@zoom/videosdk-ui-toolkit/dist/videosdk-ui-toolkit.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "@zoom/videosdk-ui-toolkit"
+            ]
           },
           "configurations": {
             "production": {

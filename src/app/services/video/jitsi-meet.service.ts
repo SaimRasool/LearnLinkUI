@@ -43,11 +43,13 @@ export class JitsiMeetService {
         startWithAudioMuted: false,
         startWithVideoMuted: false,
         disableDeepLinking: true,
+        toolbarButtons: [],
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         MOBILE_APP_PROMO: false,
         AUTHENTICATION_ENABLE: false,
+        TOOLBAR_BUTTONS: [],
       },
     });
 
@@ -56,6 +58,10 @@ export class JitsiMeetService {
     };
     this.api.addListener('videoConferenceLeft', leave);
     this.api.addListener('readyToClose', leave);
+  }
+
+  command(name: string, ...args: unknown[]): void {
+    this.api?.executeCommand(name, ...args);
   }
 
   async hangup(): Promise<void> {

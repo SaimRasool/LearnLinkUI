@@ -16,11 +16,9 @@ This repo is the UI. Real-time signaling lives in the companion API:
 | **Messenger** | Conversation list, search, start a new 1:1 chat, and a threaded message view. |
 | **Live messages** | Messages go out over SignalR or WebSocket so the other user sees them immediately. |
 | **Incoming call overlay** | Accept or decline a ringing call without leaving the current screen. |
-| **Video calls** | Caller preview (mic/camera), then a 1:1 room. Default engine is peer-to-peer WebRTC. |
-| **Settings** | Point the UI at IIS Express or Kestrel, auto-detect a running API, and set STUN/TURN. |
+| **Video calls** | WebRTC peer-to-peer, **Jitsi External API**, or **Zoom Video SDK**. |
+| **Settings** | Switch video engine, paste Jitsi/Zoom credentials, point at the API, set STUN/TURN. |
 | **Connection status** | Header pill shows SignalR/WebSocket state. Click it to reconnect. |
-
-Optional video providers (configured in `src/app/config/call.config.ts`): **Jitsi Meet**, **Zoom** (join by meeting number), and **Vidyo**.
 
 ---
 
@@ -100,6 +98,23 @@ Edit `src/app/config/call.config.ts`, then restart `ng serve`. Both users must u
 | `signalingProvider` | `signalr` (recommended) or `websocket` |
 | `videoProvider` | `webrtc` (default), `jitsi`, `zoom`, `vidyo` |
 | `backendUrl` | LearnLink API base URL |
+
+You can also switch **Jitsi** / **Zoom** in Settings without editing this file.
+
+### Jitsi Meet SDK
+
+Uses the official External API. Each pair gets a unique room. Public `meet.ffmuc.net` works with empty keys. For 8x8 JaaS, set domain `8x8.vc` and paste App ID + PKCS#8 key.
+
+### Zoom Video SDK
+
+Official Zoom Video SDK (UI Toolkit from Zoom’s CDN). Each pair joins a unique session `learnlink-{id}-{id}` — no Zoom meeting number.
+
+1. Create a **Video SDK** app at [marketplace.zoom.us](https://marketplace.zoom.us/) (not Meeting SDK).
+2. Copy **SDK Key** and **SDK Secret**.
+3. Paste them in Settings, or set `Zoom:ClientId` / `Zoom:ClientSecret` on LearnLink API.
+4. The UI calls `POST /api/zoom/token`. If the API is not configured, the UI signs locally for development.
+
+The caller joins as host (`role_type: 1`). Optional session passcode is max 10 characters and must match on both sides.
 
 WebRTC uses Google STUN by default. Add a TURN server in Settings if calls fail behind a strict firewall.
 
