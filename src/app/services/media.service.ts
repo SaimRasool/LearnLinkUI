@@ -51,8 +51,8 @@ export class MediaService {
     return this.currentStream;
   }
 
-  stopPreview() {
-    this.currentStream?.getTracks().forEach((t) => t.stop());
+  async stopPreview() {
+   await this.currentStream?.getTracks().forEach((t) => t.stop());
   }
 
   async changeCamera(deviceId: string, videoElement: HTMLVideoElement) {

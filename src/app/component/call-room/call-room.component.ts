@@ -300,17 +300,17 @@ export class CallRoomComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  endCall(): void {
-    this.signalRService.endCall(this.remoteUserId);
-    this.cleanup();
-    this.router.navigate(['/users']); // <-- change to your list page
+ async endCall(): Promise<void> {
+    await this.signalRService.endCall(this.remoteUserId);
+    await this.cleanup();
+    this.router.navigate(['/messenger']); // <-- change to your list page
   }
 
   // -----------------------------------------------------------------
   // 7. Cleanup
   // -----------------------------------------------------------------
-  private cleanup(): void {
-    this.subs.forEach((s) => s.unsubscribe());
+  private async cleanup(): Promise<void> {
+   await this.subs.forEach((s) => s.unsubscribe());
     this.subs = [];
 
     if (
@@ -319,6 +319,6 @@ export class CallRoomComponent implements OnInit, AfterViewInit, OnDestroy {
     ) {
       this.peerConnection.close();
     }
-    this.mediaService.stopPreview();
+    await this.mediaService.stopPreview();
   }
 }
